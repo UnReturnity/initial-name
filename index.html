@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vanguard Initials - RIW</title>
+    <style>
+        body { margin: 0; background: #050505; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 1px solid #444; box-shadow: 0 0 20px rgba(255, 0, 255, 0.2); }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas" width="800" height="600"></canvas>
+
+    <!-- Import gl-matrix -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('glCanvas');
+        const gl = canvas.getContext('webgl');
+
+        if (!gl) { alert('WebGL not supported'); }
+
+        // Shader Source
+        const vsSource = `
+            attribute vec4 aVertexPosition;
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            void main() {
+                gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+            }
+        `;
+        const fsSource = `
+            void main() {
+                gl_FragColor = vec4(0.8, 0.1, 0.9, 1.0); // Violet Aegis Theme
+            }
+        `;
+
+        function initShader(gl, vsSource, fsSource) {
+            const loadShader = (gl, type, source) => {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                return shader;
+            };
+            const shaderProgram = gl.createProgram();
+            gl.attachShader(shaderProgram, loadShader(gl, gl.VERTEX_SHADER, vsSource));
+            gl.attachShader(shaderProgram, loadShader(gl, gl.FRAGMENT_SHADER, fsSource));
+            gl.linkProgram(shaderProgram);
+            return shaderProgram;
+        }
+
+        const program = initShader(gl, vsSource, fsSource);
+        const programInfo = {
+            program: program,
+            attribLocations: { vertexPosition: gl.getAttribLocation(program, 'aVertexPosition') },
+            uniformLocations: {
+                projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
+                modelViewMatrix: gl.getUniformLocation(program, 'uModelViewMatrix'),
+            },
+        };
+
+        // Vertices for R, I, W (Normalized Coordinates)
+        const vertices = new Float32Array([
+            // R
+            -2.5,  1.0,  -2.5, -1.0,  // Spine
+            -2.5,  1.0,  -1.5,  1.0,  // Top
+            -1.5,  1.0,  -1.5,  0.0,  // Curve side
+            -1.5,  0.0,  -2.5,  0.0,  // Mid
+            -2.0,  0.0,  -1.5, -1.0,  // Leg
+            
+            // I
+            -0.5,  1.0,   0.5,  1.0,  // Top bar
+             0.0,  1.0,   0.0, -1.0,  // Pillar
+            -0.5, -1.0,   0.5, -1.0,  // Bottom bar
+
+            // W
+             1.5,  1.0,   1.8, -1.0,  // Left down
+             1.8, -1.0,   2.1,  0.0,  // Center up
+             2.1,  0.0,   2.4, -1.0,  // Center down
+             2.4, -1.0,   2.7,  1.0   // Right up
+        ]);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+        function draw() {
+            gl.clearColor(0.02, 0.02, 0.02, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            const projectionMatrix = mat4.create();
+            mat4.perspective(projectionMatrix, 45 * Math.PI / 180, canvas.width / canvas.height, 0.1, 100.0);
+
+            const modelViewMatrix = mat4.create();
+            mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
+
+            gl.useProgram(programInfo.program);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+            gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+            gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
+
+            gl.drawArrays(gl.LINES, 0, vertices.length / 2);
+        }
+
+        draw();
+    </script>
+</body>
+</html>
