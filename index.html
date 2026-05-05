@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Vanguard Initials - RIW</title>
     <style>
-        body { margin: 0; background: #050505; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { border: 1px solid #444; box-shadow: 0 0 20px rgba(255, 0, 255, 0.2); }
+        body { margin: 0; background: #020205; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { border: 1px solid #1a1a2e; box-shadow: 0 0 30px rgba(138, 43, 226, 0.3); }
     </style>
 </head>
 <body>
@@ -20,18 +20,21 @@
 
         if (!gl) { alert('WebGL not supported'); }
 
-        // Shader Source
         const vsSource = `
             attribute vec4 aVertexPosition;
+            attribute vec3 aVertexColor;
             uniform mat4 uModelViewMatrix;
             uniform mat4 uProjectionMatrix;
+            varying lowp vec3 vColor;
             void main() {
                 gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+                vColor = aVertexColor;
             }
         `;
         const fsSource = `
+            varying lowp vec3 vColor;
             void main() {
-                gl_FragColor = vec4(0.8, 0.1, 0.9, 1.0); // Violet Aegis Theme
+                gl_FragColor = vec4(vColor, 1.0);
             }
         `;
 
@@ -52,60 +55,98 @@
         const program = initShader(gl, vsSource, fsSource);
         const programInfo = {
             program: program,
-            attribLocations: { vertexPosition: gl.getAttribLocation(program, 'aVertexPosition') },
+            attribLocations: { 
+                vertexPosition: gl.getAttribLocation(program, 'aVertexPosition'),
+                vertexColor: gl.getAttribLocation(program, 'aVertexColor') 
+            },
             uniformLocations: {
                 projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
                 modelViewMatrix: gl.getUniformLocation(program, 'uModelViewMatrix'),
             },
         };
 
-        // Vertices for R, I, W (Normalized Coordinates)
+        // Vertices for R (Purple), I (Pink), W (Blue)
         const vertices = new Float32Array([
-            // R
-            -2.5,  1.0,  -2.5, -1.0,  // Spine
-            -2.5,  1.0,  -1.5,  1.0,  // Top
-            -1.5,  1.0,  -1.5,  0.0,  // Curve side
-            -1.5,  0.0,  -2.5,  0.0,  // Mid
-            -2.0,  0.0,  -1.5, -1.0,  // Leg
+            // R - Purple (0.5, 0.0, 1.0)
+            -2.5,  1.0, 0.0,  -2.5, -1.0, 0.0,
+            -2.5,  1.0, 0.0,  -1.5,  1.0, 0.0,
+            -1.5,  1.0, 0.0,  -1.5,  0.0, 0.0,
+            -1.5,  0.0, 0.0,  -2.5,  0.0, 0.0,
+            -2.0,  0.0, 0.0,  -1.5, -1.0, 0.0,
             
-            // I
-            -0.5,  1.0,   0.5,  1.0,  // Top bar
-             0.0,  1.0,   0.0, -1.0,  // Pillar
-            -0.5, -1.0,   0.5, -1.0,  // Bottom bar
+            // I - Pink (1.0, 0.0, 0.5)
+            -0.5,  1.0, 0.0,   0.5,  1.0, 0.0,
+             0.0,  1.0, 0.0,   0.0, -1.0, 0.0,
+            -0.5, -1.0, 0.0,   0.5, -1.0, 0.0,
 
-            // W
-             1.5,  1.0,   1.8, -1.0,  // Left down
-             1.8, -1.0,   2.1,  0.0,  // Center up
-             2.1,  0.0,   2.4, -1.0,  // Center down
-             2.4, -1.0,   2.7,  1.0   // Right up
+            // W - Blue (0.0, 0.5, 1.0)
+             1.5,  1.0, 0.0,   1.8, -1.0, 0.0,
+             1.8, -1.0, 0.0,   2.1,  0.0, 0.0,
+             2.1,  0.0, 0.0,   2.4, -1.0, 0.0,
+             2.4, -1.0, 0.0,   2.7,  1.0, 0.0
         ]);
 
-        const buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        const colors = new Float32Array([
+            // R (Purple)
+            0.6, 0.0, 1.0,  0.6, 0.0, 1.0,
+            0.6, 0.0, 1.0,  0.6, 0.0, 1.0,
+            0.6, 0.0, 1.0,  0.6, 0.0, 1.0,
+            0.6, 0.0, 1.0,  0.6, 0.0, 1.0,
+            0.6, 0.0, 1.0,  0.6, 0.0, 1.0,
+
+            // I (Pink)
+            1.0, 0.2, 0.6,  1.0, 0.2, 0.6,
+            1.0, 0.2, 0.6,  1.0, 0.2, 0.6,
+            1.0, 0.2, 0.6,  1.0, 0.2, 0.6,
+
+            // W (Blue)
+            0.0, 0.6, 1.0,  0.0, 0.6, 1.0,
+            0.0, 0.6, 1.0,  0.0, 0.6, 1.0,
+            0.0, 0.6, 1.0,  0.0, 0.6, 1.0,
+            0.0, 0.6, 1.0,  0.0, 0.6, 1.0
+        ]);
+
+        const posBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-        function draw() {
-            gl.clearColor(0.02, 0.02, 0.02, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+        const colorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+        let rotation = 0;
+
+        function render(now) {
+            rotation += 0.01; // Kecepatan animasi rotasi
+            
+            gl.clearColor(0.01, 0.01, 0.02, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             const projectionMatrix = mat4.create();
             mat4.perspective(projectionMatrix, 45 * Math.PI / 180, canvas.width / canvas.height, 0.1, 100.0);
 
             const modelViewMatrix = mat4.create();
-            mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -6.0]);
+            mat4.translate(modelViewMatrix, modelViewMatrix, [0.0, 0.0, -7.0]);
+            mat4.rotateY(modelViewMatrix, modelViewMatrix, rotation); // Animasi rotasi sumbu Y
 
             gl.useProgram(programInfo.program);
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-            gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 2, gl.FLOAT, false, 0, 0);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.vertexAttribPointer(programInfo.attribLocations.vertexColor, 3, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 
             gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
             gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, modelViewMatrix);
 
-            gl.drawArrays(gl.LINES, 0, vertices.length / 2);
+            gl.drawArrays(gl.LINES, 0, vertices.length / 3);
+            requestAnimationFrame(render);
         }
 
-        draw();
+        requestAnimationFrame(render);
     </script>
 </body>
 </html>
